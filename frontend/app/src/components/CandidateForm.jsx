@@ -1,67 +1,76 @@
 import React, { useEffect, useState } from "react";
 import { createCandidate, updateCandidate } from "../api/candidateApi";
 
-export default function CandidateForm({ editData, onSuccess }) {
-  const [form, setForm] = useState({
-    name: "",
-    age: "",
-    email: "",
-    phone: "",
-    skills: "",
-    experience: "",
-    applied_position: "",
-    status: "Pending",
-  });
+const INITIAL_STATE = {
+  name: "",
+  age: "",
+  email: "",
+  phone: "",
+  skills: "",
+  experience: "",
+  applied_position: "",
+  status: "Pending",
+};
 
-  // Autofill edit data safely
+export default function CandidateForm({ editData, onSuccess }) {
+  const [form, setForm] = useState(INITIAL_STATE);
+  const [loading, setLoading] = useState(false);
+
+  /* ================= Autofill on Edit ================= */
   useEffect(() => {
     if (editData) {
       setForm({
-        name: editData.name || "",
-        age: editData.age || "",
-        email: editData.email || "",
-        phone: editData.phone || "",
-        skills: editData.skills || "",
-        experience: editData.experience || "",
-        applied_position: editData.applied_position || "",
-        status: editData.status || "Pending",
+        name: editData.name ?? "",
+        age: editData.age ?? "",
+        email: editData.email ?? "",
+        phone: editData.phone ?? "",
+        skills: editData.skills ?? "",
+        experience: editData.experience ?? "",
+        applied_position: editData.applied_position ?? "",
+        status: editData.status ?? "Pending",
       });
+    } else {
+      setForm(INITIAL_STATE);
     }
   }, [editData]);
 
+  /* ================= Handle Change ================= */
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  /* ================= Submit ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (editData) {
-      await updateCandidate(editData.id, form);
-      alert("Updated Successfully");
-    } else {
-      await createCandidate(form);
-      alert("Created Successfully");
+    if (!form.name || !form.email) {
+      alert("Name and Email are required");
+      return;
     }
 
-    // Reset form
-    setForm({
-      name: "",
-      age: "",
-      email: "",
-      phone: "",
-      skills: "",
-      experience: "",
-      applied_position: "",
-      status: "Pending",
-    });
+    try {
+      setLoading(true);
 
-    onSuccess();
+      if (editData) {
+        await updateCandidate(editData.id, form);
+        alert("Updated Successfully");
+      } else {
+        await createCandidate(form);
+        alert("Created Successfully");
+      }
+
+      setForm(INITIAL_STATE);
+      onSuccess?.();
+    } catch (err) {
+      console.error("FORM ERROR:", err);
+      alert("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  /* ================= UI ================= */
   return (
     <form onSubmit={handleSubmit}>
       <h2>{editData ? "Edit Candidate" : "Add Candidate"}</h2>
@@ -75,6 +84,7 @@ export default function CandidateForm({ editData, onSuccess }) {
       />
 
       <input
+        type="number"
         name="age"
         placeholder="Age"
         value={form.age}
@@ -82,10 +92,13 @@ export default function CandidateForm({ editData, onSuccess }) {
       />
 
       <input
+        type="email"
         name="email"
         placeholder="Email"
         value={form.email}
         onChange={handleChange}
+        required
+        disabled={!!editData} // 🔒 email should not change
       />
 
       <input
@@ -116,7 +129,7 @@ export default function CandidateForm({ editData, onSuccess }) {
         onChange={handleChange}
       />
 
-      {/* STATUS DROPDOWN  */}
+      {/* STATUS */}
       <select name="status" value={form.status} onChange={handleChange}>
         <option value="Pending">Pending</option>
         <option value="In Progress">In Progress</option>
@@ -126,9 +139,9 @@ export default function CandidateForm({ editData, onSuccess }) {
       <br />
       <br />
 
-      <button type="submit">{editData ? "Update" : "Create"}</button>
-      <br />
-      <br />
+      <button type="submit" disabled={loading}>
+        {loading ? "Saving..." : editData ? "Update" : "Create"}
+      </button>
     </form>
   );
 }

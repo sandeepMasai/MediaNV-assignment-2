@@ -1,80 +1,110 @@
 import pool from "../config/db.js";
 
-// 📥 GET ALL
+/* ===================== GET ALL ===================== */
 export const getAllCandidates = async (req, res) => {
   try {
-    const result = await pool.query(
+    const { rows } = await pool.query(
       "SELECT * FROM candidates ORDER BY id DESC",
     );
-    res.json(result.rows);
+    res.json(rows);
   } catch (err) {
-    console.error("GET ALL ERROR:", err.message);
-    res.status(500).json({ error: err.message });
+    console.error("GET ALL ERROR:", err);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
-// 📥 GET BY ID
+/* ===================== GET BY ID ===================== */
 export const getCandidateById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ message: "Invalid ID" });
 
-    const result = await pool.query("SELECT * FROM candidates WHERE id=$1", [
+    const { rows } = await pool.query("SELECT * FROM candidates WHERE id=$1", [
       id,
     ]);
 
-    if (!result.rows.length) {
+    if (!rows.length)
       return res.status(404).json({ message: "Candidate not found" });
-    }
 
-    res.json(result.rows[0]);
+    res.json(rows[0]);
   } catch (err) {
-    console.error("GET BY ID ERROR:", err.message);
-    res.status(500).json({ error: err.message });
+    console.error("GET BY ID ERROR:", err);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
-// ➕ CREATE
+/* ===================== CREATE ===================== */
 export const createCandidate = async (req, res) => {
   try {
     const {
-      name = "",
-      age = 0,
-      email = "",
-      phone = "",
-      skills = "",
-      experience = "",
-      applied_position = "",
-      status = "",
+      name,
+      age,
+      email,
+      phone,
+      skills,
+      experience,
+      applied_position,
+      status,
     } = req.body;
 
-    const result = await pool.query(
+    if (!name || !email) {
+      return res.status(400).json({
+        message: "Name and Email are required",
+      });
+    }
+
+    const { rows } = await pool.query(
       `INSERT INTO candidates
-       (name, age, email, phone, skills, experience, applied_position, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       RETURNING *`,
-      [name, age, email, phone, skills, experience, applied_position, status],
+      (name, age, email, phone, skills, experience, applied_position, status)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+      RETURNING *`,
+      [
+        name,
+        age || null,
+        email,
+        phone || null,
+        skills || null,
+        experience || null,
+        applied_position || null,
+        status || "pending",
+      ],
     );
 
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(rows[0]);
   } catch (err) {
-    console.error("CREATE ERROR:", err.message);
+    console.error("CREATE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
-// ✏️ UPDATE
+/* ===================== UPDATE ===================== */
 export const updateCandidate = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ message: "Invalid ID" });
 
-    const fields = Object.keys(req.body);
-    const values = Object.values(req.body);
+    const allowedFields = [
+      "name",
+      "age",
+      "email",
+      "phone",
+      "skills",
+      "experience",
+      "applied_position",
+      "status",
+    ];
+
+    const fields = Object.keys(req.body).filter((f) =>
+      allowedFields.includes(f),
+    );
 
     if (!fields.length) {
       return res.status(400).json({
-        message: "No fields provided to update",
+        message: "No valid fields provided to update",
       });
     }
+
+    const values = fields.map((f) => req.body[f]);
 
     const query = `
       UPDATE candidates SET
@@ -84,38 +114,38 @@ export const updateCandidate = async (req, res) => {
       RETURNING *
     `;
 
-    const result = await pool.query(query, [...values, id]);
+    const { rows } = await pool.query(query, [...values, id]);
 
-    if (!result.rows.length) {
+    if (!rows.length)
       return res.status(404).json({ message: "Candidate not found" });
-    }
 
-    res.json(result.rows[0]);
+    res.json(rows[0]);
   } catch (err) {
-    console.error("UPDATE ERROR:", err.message);
+    console.error("UPDATE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
-// ❌ DELETE
+/* ===================== DELETE ===================== */
 export const deleteCandidate = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ message: "Invalid ID" });
 
-    const result = await pool.query(
+    const { rows } = await pool.query(
       "DELETE FROM candidates WHERE id=$1 RETURNING *",
       [id],
     );
 
-    if (!result.rows.length) {
+    if (!rows.length)
       return res.status(404).json({ message: "Candidate not found" });
-    }
 
     res.json({
       message: "Candidate deleted successfully",
+      deleted: rows[0],
     });
   } catch (err) {
-    console.error("DELETE ERROR:", err.message);
+    console.error("DELETE ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 };

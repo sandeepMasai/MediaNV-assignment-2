@@ -1,18 +1,61 @@
 import axios from "axios";
 
+/* ================= BASE URL ================= */
 const BASE_URL = "http://localhost:5000/api/candidates";
 
-// process.env.REACT_APP_API_URL ||
+/* ================= AXIOS INSTANCE ================= */
+const api = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+/* ================= HELPERS ================= */
+const handleResponse = (res) => res.data;
+const handleError = (err) => {
+  console.error("API ERROR:", err.response?.data || err.message);
+  throw err;
+};
+
+/* ================= API METHODS ================= */
 
 // GET ALL
-export const getCandidates = () => axios.get(BASE_URL);
+export const getCandidates = async () => {
+  try {
+    const res = await api.get("/");
+    return handleResponse(res);
+  } catch (err) {
+    handleError(err);
+  }
+};
 
 // CREATE
-export const createCandidate = (data) => axios.post(BASE_URL, data);
+export const createCandidate = async (data) => {
+  try {
+    const res = await api.post("/", data);
+    return handleResponse(res);
+  } catch (err) {
+    handleError(err);
+  }
+};
 
 // UPDATE
-export const updateCandidate = (id, data) =>
-  axios.put(`${BASE_URL}/${id}`, data);
+export const updateCandidate = async (id, data) => {
+  try {
+    const res = await api.put(`/${id}`, data);
+    return handleResponse(res);
+  } catch (err) {
+    handleError(err);
+  }
+};
 
 // DELETE
-export const deleteCandidate = (id) => axios.delete(`${BASE_URL}/${id}`);
+export const deleteCandidate = async (id) => {
+  try {
+    const res = await api.delete(`/${id}`);
+    return handleResponse(res);
+  } catch (err) {
+    handleError(err);
+  }
+};

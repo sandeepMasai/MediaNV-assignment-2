@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getCandidates, deleteCandidate } from "./api//candidateApi";
+import { getCandidates, deleteCandidate } from "./api/candidateApi";
 
 import CandidateForm from "./components/CandidateForm";
 import CandidateTable from "./components/CandidateTable";
@@ -7,41 +7,62 @@ import CandidateTable from "./components/CandidateTable";
 export default function App() {
   const [data, setData] = useState([]);
   const [editData, setEditData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // FETCH ALL
+  /* ================= FETCH ALL ================= */
   const fetchCandidates = async () => {
-    const res = await getCandidates();
-    setData(res.data);
+    try {
+      setLoading(true);
+      const candidates = await getCandidates(); // ✅ already data
+      setData(candidates);
+    } catch (err) {
+      console.error("FETCH ERROR:", err);
+      alert("Failed to fetch candidates");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchCandidates();
   }, []);
 
-  // DELETE
+  /* ================= DELETE ================= */
   const handleDelete = async (id) => {
-    await deleteCandidate(id);
-    fetchCandidates();
+    if (!window.confirm("Are you sure you want to delete?")) return;
+
+    try {
+      await deleteCandidate(id);
+      fetchCandidates();
+    } catch (err) {
+      console.error("DELETE ERROR:", err);
+      alert("Delete failed");
+    }
   };
 
-  // EDIT
+  /* ================= EDIT ================= */
   const handleEdit = (candidate) => {
     setEditData(candidate);
   };
 
-  // AFTER CREATE / UPDATE
+  /* ================= AFTER CREATE / UPDATE ================= */
   const handleSuccess = () => {
     fetchCandidates();
     setEditData(null);
   };
 
+  /* ================= UI ================= */
   return (
     <div style={{ padding: 20 }}>
       <h1>Candidate Management</h1>
 
       <CandidateForm editData={editData} onSuccess={handleSuccess} />
 
-      <CandidateTable data={data} remove={handleDelete} edit={handleEdit} />
+      {loading ? (
+        <p>Loading candidates...</p>
+      ) : (
+        <CandidateTable data={data} remove={handleDelete} edit={handleEdit} />
+      )}
     </div>
   );
 }
