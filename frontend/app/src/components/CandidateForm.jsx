@@ -1,67 +1,134 @@
-import { useState } from "react";
-import { createCandidate } from "../api/candidateApi";
+import React, { useEffect, useState } from "react";
+import { createCandidate, updateCandidate } from "../api/candidateApi";
 
-export default function CandidateForm({ refresh }) {
+export default function CandidateForm({ editData, onSuccess }) {
   const [form, setForm] = useState({
     name: "",
     age: "",
     email: "",
+    phone: "",
     skills: "",
+    experience: "",
+    applied_position: "",
+    status: "Pending",
   });
 
+  // Autofill edit data safely
+  useEffect(() => {
+    if (editData) {
+      setForm({
+        name: editData.name || "",
+        age: editData.age || "",
+        email: editData.email || "",
+        phone: editData.phone || "",
+        skills: editData.skills || "",
+        experience: editData.experience || "",
+        applied_position: editData.applied_position || "",
+        status: editData.status || "Pending",
+      });
+    }
+  }, [editData]);
+
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
   };
 
-  const submit = async () => {
-    //  validation
-    if (!form.name || !form.age || !form.email) {
-      alert("Name, Age, and Email are required");
-      return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (editData) {
+      await updateCandidate(editData.id, form);
+      alert("Updated Successfully");
+    } else {
+      await createCandidate(form);
+      alert("Created Successfully");
     }
 
-    await createCandidate({
-      ...form,
-      age: Number(form.age),
+    // Reset form
+    setForm({
+      name: "",
+      age: "",
+      email: "",
+      phone: "",
+      skills: "",
+      experience: "",
+      applied_position: "",
+      status: "Pending",
     });
 
-    setForm({ name: "", age: "", email: "", skills: "" });
-    refresh();
+    onSuccess();
   };
 
   return (
-    <div>
+    <form onSubmit={handleSubmit}>
+      <h2>{editData ? "Edit Candidate" : "Add Candidate"}</h2>
+
       <input
         name="name"
-        value={form.name}
         placeholder="Name"
+        value={form.name}
         onChange={handleChange}
+        required
       />
 
       <input
         name="age"
-        value={form.age}
         placeholder="Age"
-        type="number"
+        value={form.age}
         onChange={handleChange}
       />
 
       <input
         name="email"
-        value={form.email}
         placeholder="Email"
+        value={form.email}
+        onChange={handleChange}
+      />
+
+      <input
+        name="phone"
+        placeholder="Phone"
+        value={form.phone}
         onChange={handleChange}
       />
 
       <input
         name="skills"
-        value={form.skills}
         placeholder="Skills"
+        value={form.skills}
         onChange={handleChange}
       />
 
-      <button onClick={submit}>Add Candidate</button>
-    </div>
+      <input
+        name="experience"
+        placeholder="Experience"
+        value={form.experience}
+        onChange={handleChange}
+      />
+
+      <input
+        name="applied_position"
+        placeholder="Position"
+        value={form.applied_position}
+        onChange={handleChange}
+      />
+
+      {/* STATUS DROPDOWN  */}
+      <select name="status" value={form.status} onChange={handleChange}>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Completed">Completed</option>
+      </select>
+
+      <br />
+      <br />
+
+      <button type="submit">{editData ? "Update" : "Create"}</button>
+      <br />
+      <br />
+    </form>
   );
 }
